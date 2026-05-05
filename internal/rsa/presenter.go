@@ -9,7 +9,8 @@ import (
 type Presenter interface {
 	ShowKeys(keys *Keypair)
 	ShowProcess(label string, input, output *big.Int)
-	ShowBreakResult(stolenD, plain *big.Int, duration time.Duration)
+	ShowBreakResult(stolenD, plain *big.Int, duration time.Duration, backend string)
+	ShowError(msg string)
 }
 
 type ConsolePresenter struct{}
@@ -30,10 +31,15 @@ func (p *ConsolePresenter) ShowProcess(label string, input, output *big.Int) {
 	fmt.Printf("%-15s | In: %-6s | Out: %s\n", label, input, output)
 }
 
-func (p *ConsolePresenter) ShowBreakResult(stolenD, plain *big.Int, duration time.Duration) {
+func (p *ConsolePresenter) ShowBreakResult(stolenD, plain *big.Int, duration time.Duration, backend string) {
 	fmt.Println("\n--- [PASSO 2] BÔNUS: QUEBRA POR FATORAÇÃO ---")
 	fmt.Printf("Chave 'd' Descoberta: %s\n", stolenD)
 	fmt.Printf("Mensagem Decifrada:   %s\n", plain)
+	fmt.Printf("Backend Utilizado:    %s\n", backend)
 	fmt.Printf("Tempo de Execução:    %v\n", duration)
 	fmt.Println("------------------------------------------")
+}
+
+func (p *ConsolePresenter) ShowError(msg string) {
+	fmt.Printf("ERRO            | %s\n", msg)
 }

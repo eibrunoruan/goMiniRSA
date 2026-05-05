@@ -25,32 +25,45 @@ func NewService() Service {
 }
 
 func (s *rsaService) GenerateKeys(bits int) (*Keypair, error) {
-	// Para suportar 16 bits, geramos primos de (bits/2)+1
-	p, err := rand.Prime(rand.Reader, (bits/2)+1)
-	if err != nil {
-		return nil, err
-	}
-	q, err := rand.Prime(rand.Reader, (bits/2)+1)
-	if err != nil {
-		return nil, err
+	if bits < 16 {
+		return nil, errors.New("bits deve ser >= 16")
 	}
 
-	n := new(big.Int).Mul(p, q)
-	
-	// phi = (p-1)(q-1)
-	pMinus1 := new(big.Int).Sub(p, big.NewInt(1))
-	qMinus1 := new(big.Int).Sub(q, big.NewInt(1))
-	phi := new(big.Int).Mul(pMinus1, qMinus1)
-
-	// e = 65537 é o padrão de mercado (F4 de Fermat)
 	e := big.NewInt(65537)
-	
-	d := new(big.Int).ModInverse(e, phi)
-	if d == nil {
-		return nil, errors.New("erro ao calcular inverso modular")
-	}
+	pBits := bits / 2
+	qBits := bits - pBits
 
-	return &Keypair{E: e, D: d, N: n}, nil
+	for {
+		p, err := rand.Prime(rand.Reader, pBits)
+		if err != nil {
+			return nil, err
+		}
+
+		q, err := rand.Prime(rand.Reader, qBits)
+		if err != nil {
+			return nil, err
+		}
+		if p.Cmp(q) == 0 {
+			continue
+		}
+
+		n := new(big.Int).Mul(p, q)
+		if n.BitLen() != bits {
+			continue
+		}
+
+		// phi = (p-1)(q-1)
+		pMinus1 := new(big.Int).Sub(p, big.NewInt(1))
+		qMinus1 := new(big.Int).Sub(q, big.NewInt(1))
+		phi := new(big.Int).Mul(pMinus1, qMinus1)
+
+		d := new(big.Int).ModInverse(e, phi)
+		if d == nil {
+			continue
+		}
+
+		return &Keypair{E: e, D: d, N: n}, nil
+	}
 }
 
 func (s *rsaService) Encrypt(msg *big.Int, e, n *big.Int) *big.Int {
